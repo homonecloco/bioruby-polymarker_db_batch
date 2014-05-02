@@ -1,4 +1,4 @@
-# encoding: utf-8
+ # encoding: utf-8
 
 require 'rubygems'
 require 'bundler'
@@ -20,7 +20,7 @@ Jeweler::Tasks.new do |gem|
   gem.summary = %Q{TODO: one-line summary of your gem}
   gem.description = %Q{TODO: longer description of your gem}
   gem.email = "ricardo.ramirez-gonzalez@tgac.ac.uk"
-  gem.authors = ["homonecloco"]
+  gem.authors = ["Ricardo H.  Ramirez-Gonzalez"]
   # dependencies defined in Gemfile
 end
 Jeweler::RubygemsDotOrgTasks.new

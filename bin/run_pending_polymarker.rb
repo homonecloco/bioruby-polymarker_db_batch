@@ -21,6 +21,21 @@ OptionParser.new do |opts|
 end.parse!
 
 pol=Bio::DB::Polymarker.new(options[:preferences])
-pol.connect
+
+
 pol.mysql_version
-pol.close
+pol.each_to_run do |row|
+  puts row.join(",")
+  puts row.inspect
+  pol.write_output_file_and_execute(row[0], row[1]);
+#  pol.each_snp_in_file(row[0]) do |snp|
+ #    puts snp.inspect
+     
+  #    pol.
+   #end
+  
+end
+
+
+
+
