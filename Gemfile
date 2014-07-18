@@ -14,5 +14,4 @@ group :development do
   gem "jeweler", "~> 2", :git => "https://github.com/technicalpickles/jeweler.git"
   gem "bundler", ">= 1.0.21"
   gem "bio", ">= 1.4.2"
-  gem "rdoc", "~> 3.12"
 end
