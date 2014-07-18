@@ -70,6 +70,25 @@ class Bio::DB::Polymarker
     pst.execute new_status, snp_file_id
     con.commit
   end
+
+  def send_email(to,opts={})
+    opts[:server]      ||= 'localhost'
+    opts[:from]        ||= 'polymarker@tgac.ac.uk'
+    opts[:from_alias]  ||= 'Example Emailer'
+    opts[:subject]     ||= "You need to see this"
+    opts[:body]        ||= "Important stuff!"
+
+    msg = <<END_OF_MESSAGE
+From: #{opts[:from_alias]} <#{opts[:from]}>
+To: <#{to}>
+Subject: #{opts[:subject]}
+
+#{opts[:body]}
+END_OF_MESSAGE
+    Net::SMTP.start(opts[:server]) do |smtp|
+      smtp.send_message msg, opts[:from], to
+    end
+  end
   
   def review_running_status(file_id, filename)
     out_folder=@properties["execution_path"]+"/#{file_id}_#{filename}_out"
@@ -113,8 +132,7 @@ class Bio::DB::Polymarker
   end
 
   def con     #TODO: reconnect if connection lost
-    connect unless @con
-    
+    connect unless @con 
     @con
   end
 
