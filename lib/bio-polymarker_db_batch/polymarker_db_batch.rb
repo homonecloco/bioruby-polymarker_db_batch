@@ -10,6 +10,11 @@ class Bio::DB::Polymarker
   def mysql_version
     con.get_server_info
   end
+ 
+ def get_snp_file(id)
+  results = con.query "SELECT * FROM snp_file WHERE snp_file_id=#{id}"
+  results.fetch_hash
+ end
 
   def each_to_run
     query="SELECT snp_file_id, filename FROM snp_file WHERE status = 'NEW';"
@@ -66,11 +71,13 @@ class Bio::DB::Polymarker
 
   def update_status(snp_file_id, new_status)
     raise "Invalid status #{new_status}" unless ["NEW", "SUBMITTED", "RUNNING", "DONE", "ERROR"].include?(new_status)
+    snp_file = get_snp_file(snp_file_id)
+    return if snp_file['status'] == new_status
     pst = con.prepare "UPDATE snp_file SET status = ? WHERE snp_file_id = ?"
     pst.execute new_status, snp_file_id
     con.commit
     begin
-      send_email(to,id, status)
+      send_email(snp_file['email'],id, status)
     rescue
       puts "Error sending email."
     end
