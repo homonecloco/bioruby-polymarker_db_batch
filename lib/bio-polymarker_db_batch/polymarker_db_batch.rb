@@ -4,7 +4,7 @@ class Bio::DB::Polymarker
 
   def initialize( props)
     @properties =Hash[*File.read(props).split(/[=\n]+/)]
-    puts @properties.inspect
+    #puts @properties.inspect
   end
 
   def mysql_version
@@ -69,24 +69,31 @@ class Bio::DB::Polymarker
     pst = con.prepare "UPDATE snp_file SET status = ? WHERE snp_file_id = ?"
     pst.execute new_status, snp_file_id
     con.commit
+    begin
+      send_email(to,id, status)
+    rescue
+      puts "Error sending email."
+    end
   end
 
-  def send_email(to,opts={})
-    opts[:server]      ||= 'localhost'
-    opts[:from]        ||= 'polymarker@tgac.ac.uk'
-    opts[:from_alias]  ||= 'Example Emailer'
-    opts[:subject]     ||= "You need to see this"
-    opts[:body]        ||= "Important stuff!"
+  def send_email(to,id, status)
+    options = @properties
 
     msg = <<END_OF_MESSAGE
-From: #{opts[:from_alias]} <#{opts[:from]}>
+From: #{options['email_from_alias']} <#{options['email_from']}>
 To: <#{to}>
-Subject: #{opts[:subject]}
+Subject: Polymarker #{id} #{status}
+
+The current status of your request (#{id}) is #{status}
+The latest status and results (when done) are available in: #{options['web_domain']}/status?id=#{id}
+
 
 #{opts[:body]}
 END_OF_MESSAGE
-    Net::SMTP.start(opts[:server]) do |smtp|
-      smtp.send_message msg, opts[:from], to
+    smtp = Net::SMTP.new options["email_server"], 587
+    smtp.enable_starttls
+    smtp.start( options["email_domain"], options["email_user"], options["email_pwd"], :login) do
+      smtp.send_message(msg, options["email_from"], to)
     end
   end
   
