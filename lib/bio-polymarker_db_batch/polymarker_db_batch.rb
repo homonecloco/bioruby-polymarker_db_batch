@@ -28,7 +28,7 @@ class Bio::DB::Polymarker
   end
 
   def each_running
-    query="SELECT snp_file_id, filename FROM snp_file WHERE status NOT IN ('NEW', 'DONE', 'LOADED');"
+    query="SELECT snp_file_id, filename FROM snp_file WHERE status NOT IN ('NEW', 'DONE', 'LOADED', 'ERROR');"
     ret = 0
     if block_given?
       ret = execute_query(query){|row| yield row }
@@ -77,7 +77,7 @@ class Bio::DB::Polymarker
     pst.execute new_status, snp_file_id
     con.commit
     begin
-      send_email(snp_file['email'],id, status)
+      send_email(snp_file['email'],snp_file_id, new_status)
     rescue
       puts "Error sending email."
     end
@@ -95,7 +95,6 @@ The current status of your request (#{id}) is #{status}
 The latest status and results (when done) are available in: #{options['web_domain']}/status?id=#{id}
 
 
-#{opts[:body]}
 END_OF_MESSAGE
     smtp = Net::SMTP.new options["email_server"], 587
     smtp.enable_starttls

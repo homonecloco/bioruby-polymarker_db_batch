@@ -7,6 +7,6 @@
 #   require 'bio/bio-plugin/plugin'
 #
 # In this file only require other files. Avoid other source code.
-
+require 'net/smtp'
 require 'bio-polymarker_db_batch/polymarker_db_batch.rb'
 
