@@ -28,7 +28,7 @@ class Bio::DB::Polymarker
   end
 
   def each_running
-    query="SELECT snp_file_id, filename FROM snp_file WHERE status = 'RUNNING';"
+    query="SELECT snp_file_id, filename FROM snp_file WHERE status IN ('SUBMITTED', 'RUNNING');"
     ret = 0
     if block_given?
       ret = execute_query(query){|row| yield row }
