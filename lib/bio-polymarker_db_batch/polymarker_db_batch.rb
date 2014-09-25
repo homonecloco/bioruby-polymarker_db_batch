@@ -28,7 +28,7 @@ class Bio::DB::Polymarker
   end
 
   def each_running
-    query="SELECT snp_file_id, filename FROM snp_file WHERE status NOT IN ('NEW', 'DONE', 'LOADED', 'ERROR');"
+    query="SELECT snp_file_id, filename FROM snp_file WHERE status = 'RUNNING');"
     ret = 0
     if block_given?
       ret = execute_query(query){|row| yield row }
@@ -39,7 +39,7 @@ class Bio::DB::Polymarker
   end
 
   def each_snp_in_file(file_id)
-    query="SELECT name, chromosome, sequence FROM snp, snp_file_snp WHERE snp_file_snp.snpList_snpId = snp.snpId AND snp_file_snp.snp_file_snp_file_id = '#{file_id}';"
+    query="SELECT name, chromosome, sequence FROM snp, snp_file_snp WHERE snp_file_snp.snpList_snpId = snp.snpId AND snp_file_snp.snp_file_snp_file_id = '#{file_id}' AND snp.process = 1;"
     ret = 0
     puts query
     if block_given?
@@ -77,7 +77,8 @@ class Bio::DB::Polymarker
     pst.execute new_status, snp_file_id
     con.commit
     begin
-      send_email(snp_file['email'],snp_file_id, new_status)
+      hashed_id = "#{snp_file_id}:#{snp_file['hash']}"
+      send_email(snp_file['email'],hashed_id, new_status)
     rescue
       puts "Error sending email."
     end
