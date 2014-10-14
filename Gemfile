@@ -2,7 +2,7 @@ source "http://rubygems.org"
 # Add dependencies required to use your gem here.
 # Example:
 #   gem "activesupport", ">= 2.3.5"
-gem "bio-polyploid-tools"
+gem "bio-polyploid-tools", "=0.5.1"
 gem "mysql"
 
 # Add dependencies to develop your gem here.

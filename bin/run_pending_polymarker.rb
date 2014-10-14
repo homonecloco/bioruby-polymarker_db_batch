@@ -28,6 +28,8 @@ pol.mysql_version
 pol.each_to_run do |row|
   puts row.join(",")
   puts row.inspect
+  puts row[0]
+  puts row[1]
   pol.write_output_file_and_execute(row[0], row[1]);
 #  pol.each_snp_in_file(row[0]) do |snp|
  #    puts snp.inspect

@@ -23,19 +23,16 @@ end.parse!
 pol=Bio::DB::Polymarker.new(options[:preferences])
 
 
-pol.mysql_version
+#pol.mysql_version
 pol.each_running do |row|
-  puts row.join(",")
-  puts row.inspect
-  pol.review_running_status(row[0], row[1])
-#  pol.write_output_file_and_execute(row[0], row[1]);
-#  pol.each_snp_in_file(row[0]) do |snp|
- #    puts snp.inspect
-     
-  #    pol.
-   #end
-  
+  #puts row.join(",")
+  #puts row.inspect
+  pol.review_running_status(row[0], row[1])  
 end
 
+pol.each_timeout do |row|
+  #puts "Timeouts: #{row[0]}"
+  pol.update_error_status(row[0], "Timeout")
+end
 
 

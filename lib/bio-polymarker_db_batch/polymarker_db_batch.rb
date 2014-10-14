@@ -1,4 +1,4 @@
-
+require 'pp'  
 class Bio::DB::Polymarker
 
 
@@ -38,6 +38,19 @@ class Bio::DB::Polymarker
     ret
   end
 
+  def each_timeout
+    #TODO: validate the timeouts. 
+    #SELECT * FROM snp_file WHERE datediff(NOW(), lastChange) > 3 and status != 'DONE';
+    query="SELECT snp_file_id, filename FROM snp_file WHERE datediff(NOW(), submitted) > 3 AND status IN ('NEW', 'SUBMITTED', 'RUNNING');"
+    ret = 0
+    if block_given?
+       ret = execute_query(query){|row| yield row }
+    else
+      ret = execute_query(query)
+    end
+    ret
+  end
+
   def each_snp_in_file(file_id)
     query="SELECT name, chromosome, sequence FROM snp, snp_file_snp WHERE snp_file_snp.snpList_snpId = snp.snpId AND snp_file_snp.snp_file_snp_file_id = '#{file_id}' AND snp.process = 1;"
     ret = 0
@@ -51,6 +64,7 @@ class Bio::DB::Polymarker
   end
 
   def write_output_file_and_execute(file_id, filename)
+    puts "Writting: #{file_id}_#{filename}"
     path =@properties["execution_path"]+"/#{file_id}_#{filename}"
     puts "Writting: #{path}"
     f=File.open(path, "w")
@@ -80,7 +94,31 @@ class Bio::DB::Polymarker
       hashed_id = "#{snp_file_id}:#{snp_file['hash']}"
       send_email(snp_file['email'],hashed_id, new_status)
     rescue
-      puts "Error sending email."
+      puts "Error sending email. "
+    end
+  end
+
+  def update_error_status(snp_file_id, error_message)
+    snp_file = get_snp_file(snp_file_id)
+    return if snp_file['status'] == "ERROR"
+
+
+    pst = con.prepare "UPDATE snp_file SET status = 'ERROR', error=? WHERE snp_file_id = ?"
+    puts "update_error_status: #{pst}"
+    pst.execute error_message, snp_file_id
+    con.commit
+    new_status = "ERROR: #{error_message}"
+      hashed_id = "#{snp_file_id}:#{snp_file['hash']}"
+    begin
+      send_email(snp_file['email'], hashed_id,  new_status)
+    rescue Exception => e  
+      puts "Error sending email to #{snp_file['email']}: #{e.message}"
+    end
+      
+    begin
+      send_email(@properties['email_from'], hashed_id, new_status)
+    rescue Exception => e  
+      puts "Error sending email to #{@properties['email_from']}: #{e.message}"
     end
   end
 
@@ -109,17 +147,33 @@ END_OF_MESSAGE
     started=File.exist?(out_folder)
     done=false
     
+
+    error_message = ""
+    error = false
+
     if started
       lines = IO.readlines("#{out_folder}/status.txt")
-    #  puts lines.inspect
-      done = lines.last.split(",").include?("DONE\n") if lines.size > 1
+      puts lines.inspect
+
+    lines.each do |l| 
+      done = l.split(",").include?("DONE\n")
     end
+      
+      lines.each do |l|  
+        error = l.include?("ERROR") unless error
+        error_message << l if error
+      end 
+    end
+
+
     if done 
       exons_filename="#{out_folder}/exons_genes_and_contigs.fa"
       output_primers="#{out_folder}/primers.csv"
       read_file_to_snp_file("mask_fasta", file_id, exons_filename )
       read_file_to_snp_file("polymarker_output", file_id, output_primers )
       update_status(file_id, "DONE")
+    elsif error
+       update_error_status(file_id, error_message)
     elsif started
       update_status(file_id, "RUNNING")
     end
@@ -151,13 +205,13 @@ END_OF_MESSAGE
   end
 
   def execute_query(query)
-    $stderr.puts query if $VERBOSE
-   
-   
-    
+    $stderr.puts query if $VERBOSE 
+    #puts "to execute: #{query}"
     if query.start_with?( 'SELECT')
       rs = con.query(query)
+      pp rs.inspect
       n_rows = rs.num_rows
+      puts "Returned #{n_rows} rows"
       ret = Array.new unless block_given?
       n_rows.times do
         row = rs.fetch_row
