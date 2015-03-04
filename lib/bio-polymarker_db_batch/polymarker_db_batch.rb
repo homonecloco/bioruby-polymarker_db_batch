@@ -4,7 +4,7 @@ class Bio::DB::Polymarker
 
   def initialize( props)
     @properties =Hash[*File.read(props).split(/[=\n]+/)]
-    #puts @properties.inspect
+    puts @properties.inspect
   end
 
   def mysql_version
@@ -54,7 +54,7 @@ class Bio::DB::Polymarker
   def each_snp_in_file(file_id)
     query="SELECT name, chromosome, sequence FROM snp, snp_file_snp WHERE snp_file_snp.snpList_snpId = snp.snpId AND snp_file_snp.snp_file_snp_file_id = '#{file_id}' AND snp.process = 1;"
     ret = 0
-    puts query
+    #puts query
     if block_given?
       ret = execute_query(query){|row| yield row }
     else
@@ -64,21 +64,38 @@ class Bio::DB::Polymarker
   end
 
   def write_output_file_and_execute(file_id, filename)
-    puts "Writting: #{file_id}_#{filename}"
+    #puts "Writting: #{file_id}_#{filename}"
     path =@properties["execution_path"]+"/#{file_id}_#{filename}"
     puts "Writting: #{path}"
     f=File.open(path, "w")
-
     each_snp_in_file(file_id) do |row|
       f.puts(row.join(","))
     end
-    execute_polymarker(path)
-    update_status(file_id, "SUBMITTED")
     f.close
+    execute_polymarker(file_id, path)
+    update_status(file_id, "SUBMITTED")
+   
   end
 
-  def execute_polymarker(snp_file)
-    cmd="#{@properties['wrapper_prefix'] } polymarker.rb -m #{snp_file} -o #{snp_file}_out -c #{@properties['path_to_chromosomes']} #{@properties['wrapper_suffix'] }"
+  def get_preferences(file_id)
+    query="SELECT name, value FROM preferences \
+    join snp_file_preferences on preferenceID = preferences_preferenceID \
+    where snp_file_snp_file_id = #{file_id};"
+    preferences = Hash.new
+    execute_query(query) do |row|
+      preferences[row[0].to_sym] = row[1]
+    end
+    return preferences
+  end
+
+  def execute_polymarker(file_id, snp_file)
+    
+    preferences = get_preferences(file_id)
+
+    cmd=@properties['wrapper_prefix']
+    cmd << "polymarker.rb -m #{snp_file} -o #{snp_file}_out "
+    cmd << "-c #{@properties['path_to_chromosomes']}/#{preferences[:reference]} "
+    cmd << @properties['wrapper_suffix']
     #polymarker.rb -m 1_GWAS_SNPs.csv -o 1_test -c /Users/ramirezr/Documents/TGAC/references/Triticum_aestivum.IWGSP1.21.dna_rm.genome.fa
     execute_command(cmd)
   end
@@ -101,8 +118,6 @@ class Bio::DB::Polymarker
   def update_error_status(snp_file_id, error_message)
     snp_file = get_snp_file(snp_file_id)
     return if snp_file['status'] == "ERROR"
-
-
     pst = con.prepare "UPDATE snp_file SET status = 'ERROR', error=? WHERE snp_file_id = ?"
     puts "update_error_status: #{pst}"
     pst.execute error_message, snp_file_id
@@ -161,7 +176,7 @@ END_OF_MESSAGE
       
       lines.each do |l|  
         error = l.include?("ERROR") unless error
-        error_message << l if error
+        error_message << lines if error
       end 
     end
 
@@ -222,7 +237,7 @@ END_OF_MESSAGE
       return n_rows unless block_given?
       return ret
     end
-    raise "Unsuported query #{query}"
+    raise "Unsuported query '#{query}'"
     
   end
 

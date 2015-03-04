@@ -12,7 +12,7 @@ options = {}
 
 
 OptionParser.new do |opts|
-  opts.banner = "Usage: run_pending_polymarker.rb [options]"
+  opts.banner = "Usage: monitor_running_polymarker.rb [options]"
   
   opts.on("-p", "--preferences FILE" "File with the preferences") do |o|
      options[:preferences] = o
@@ -31,7 +31,7 @@ pol.each_running do |row|
 end
 
 pol.each_timeout do |row|
-  #puts "Timeouts: #{row[0]}"
+  # => puts "Timeouts: #{row[0]}"
   pol.update_error_status(row[0], "Timeout")
 end
 
