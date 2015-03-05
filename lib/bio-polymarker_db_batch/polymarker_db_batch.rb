@@ -176,7 +176,7 @@ END_OF_MESSAGE
       
       lines.each do |l|  
         error = l.include?("ERROR") unless error
-        error_message << lines if error
+        error_message << l if error
       end 
     end
 
